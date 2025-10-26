@@ -147,4 +147,371 @@ ELF: The public directive has the same meaning and syntax as when the COFF outpu
     <directive name="plt" tool="fasm">
         <description>Allows to call the external functions through the Procedure Linkage Table.</description>
     </directive>
+    <directive name="BinaryType" tool="fasm">
+        <description>macro @BinaryType type, model.
+        This macro sets the type of the executable. The argument type can accept one of the following values: GUI, console or DLL.
+        The argument model is optional and determines the memory model the compiler will follow for the data sections of the program.
+        The possible values are in general OS dependent, but some are in common use:
+            default - use the default model for the given binary type. The data sections are usually separated from the code section.
+            compact - try to make the binary as small as possible, merging data, import, export and code sections if possible.
+            manual - does not automatically create data or import sections. The programmer is responsible for creating these sections.
+        This macro also begins the main code section of the executable and defines the entry label of the program. The entry label is fixed to start: if the binary type is console or GUI and EntryPoint if DLL.
+        For example, following code will tell the compiler to compile the program as a GUI application with default memory model:
+            include '%lib%/freshlib.inc'
+            @BinaryType GUI
+        </description>
+    </directive>
+    <directive name="__create_all_imports" tool="fasm">
+        <description>macro __create_all_imports
+        This macro is for internal use only. The user must not call it, unless the memory model in @BinaryType is set to manual.
+        This macro creates a data structure for all imported from dynamic libraries functions. The data is placed where the macro is called.
+        </description>
+    </directive>
+    <directive name="stdcall" tool="fasm">
+        <description>These macros call the procedures with STDCALL and CCALL calling convention.
+stdcall macro pushes the arguments to the stack in reverse order and then call the procedure with label proc. As long as the macro "stdcall" does not provide any stack cleanup (this duty is assigned to the procedure) the arguments can be pushed in free manner using, for example, separate push instructions for part of the arguments and arguments in the stdcall line for the remaining arguments. </description>
+    </directive>
+    <directive name="ccall" tool="fasm">
+        <description>ccall macro calls a procedure with CCALL convention. This means that the procedure returns with simple "retn", without cleaning the parameters from the stack. Then "ccall" macro provides instructions that remove the arguments from the stack.
+Because ccall have to know the exact count of passed arguments, all arguments have to be passed explicitly as a values in the ccall statement. Tricks as described above will not work properly and leads to stack not properly cleaned after the call. </description>
+    </directive>
+    <directive name="invokec" tool="fasm">
+        <description>invoke macro is the same as "stdcall" with the only difference - it calls the procedure indirectly ( call [proc] instead of call proc ). This mechanism usualy is used to call the functions imported from external dynamic linked libraries. Of course, the imported functions can be call with stdcall [someproc] but the invoke macro helps to better distinguish what procedures are imported and what are internal for the program.
+NOTE: The user should never use invoke in the portable programs, because such programs never use directly OS dependent import functions. </description>
+    </directive>
+    <directive name="cinvoke" tool="fasm">
+        <description>"cinvoke" is the same as ccall, but using indirect call. The reason for existing of "cinvoke" macro is the same as with "invoke" macro — better legibility of the source. </description>
+    </directive>
+    <directive name="proc" tool="fasm">
+        <description> macro proc name, [arg]c.
+        These macros define a procedure, create a stack frame for the local variables and define symbolic names for the arguments.
+        The macro "proc" defines the global label "name" as a name for the procedure.
+        All arguments and local variables are defined as a local labels with regard to the name of the procedure.
+        That is why all arguments and local variables must have names beginning with dot.
+        Between the line with proc and begin, any number of local variables can be defined. The macro begin marks the begining of the procedural code.
+        The macro endp marks the end of the procedural code.
+        </description>
+    </directive>
+    <directive name="begin" tool="fasm">
+        <description>These macros define a procedure, create a stack frame for the local variables and define symbolic names for the arguments.
+        The macro "proc" defines the global label "name" as a name for the procedure.
+        All arguments and local variables are defined as a local labels with regard to the name of the procedure.
+        That is why all arguments and local variables must have names beginning with dot.
+        Between the line with proc and begin, any number of local variables can be defined. The macro begin marks the begining of the procedural code.
+        The macro endp marks the end of the procedural code.</description>
+    </directive>
+    <directive name="endp" tool="fasm">
+        <description>These macros define a procedure, create a stack frame for the local variables and define symbolic names for the arguments.
+        The macro "proc" defines the global label "name" as a name for the procedure.
+        All arguments and local variables are defined as a local labels with regard to the name of the procedure.
+        That is why all arguments and local variables must have names beginning with dot.
+        Between the line with proc and begin, any number of local variables can be defined. The macro begin marks the begining of the procedural code.
+        The macro endp marks the end of the procedural code.</description>
+    </directive>
+    <directive name="return" tool="fasm">
+        <description>The return from procedure instruction is provided by macros return or cret depending on the calling convention we want to use: return clears the arguments from the stack and cret does not.
+Inside the procedure, a secondary stack frame can be allocated with the pair locals and endl. All data definitions, enclosed between these macros will define a secondary stack frame that is a continuation of the stack frame defined between proc and begin. </description>
+    </directive>
+    <directive name="cret" tool="fasm">
+        <description>The return from procedure instruction is provided by macros return or cret depending on the calling convention we want to use: return clears the arguments from the stack and cret does not.
+Inside the procedure, a secondary stack frame can be allocated with the pair locals and endl. All data definitions, enclosed between these macros will define a secondary stack frame that is a continuation of the stack frame defined between proc and begin. </description>
+    </directive>
+    <directive name="locals" tool="fasm">
+        <description>Inside the procedure, a secondary stack frame can be allocated with the pair locals and endl. All data definitions, enclosed between these macros will define a secondary stack frame that is a continuation of the stack frame defined between proc and begin.
+Any number of locals and endl pairs can be used, but all of these secondary stack frames will overlap between each other. This feature is specially intended to provide savings of stack space and at the same time, to provide talking variable names for the different parts of more complex procedures. </description>
+    </directive>
+    <directive name="endl" tool="fasm">
+        <description>Inside the procedure, a secondary stack frame can be allocated with the pair locals and endl. All data definitions, enclosed between these macros will define a secondary stack frame that is a continuation of the stack frame defined between proc and begin.
+Any number of locals and endl pairs can be used, but all of these secondary stack frames will overlap between each other. This feature is specially intended to provide savings of stack space and at the same time, to provide talking variable names for the different parts of more complex procedures. </description>
+    </directive>
+    <directive name="initialize" tool="fasm">
+        <description>macro initialize.
+        The macros "initialize" and "finalize" defines one special type of procedures that, during compilation are registered in a two separate lists - one for "initialize" and one for "finalize" procedures. Procedures defined with "initialize" and "finalize" must have no any arguments.
+        After that, using the macros "InitializeAll" and "FinalizeAll", all these procedures can be call at once. "initialize" procedures are call in the order of their definition and "finalize" procedures in reverse order.
+        These macros provides standard and consistent way for initialization and the finalization of the libraries and modules of the application.
+        FreshLib uses this mechanism and the user is free to use it as well.
+        </description>
+    </directive>
+    <directive name="InitializeAll" tool="fasm">
+        <description>The macros "initialize" and "finalize" defines one special type of procedures that, during compilation are registered in a two separate lists - one for "initialize" and one for "finalize" procedures. Procedures defined with "initialize" and "finalize" must have no any arguments.
+        After that, using the macros "InitializeAll" and "FinalizeAll", all these procedures can be call at once. "initialize" procedures are call in the order of their definition and "finalize" procedures in reverse order.
+        These macros provides standard and consistent way for initialization and the finalization of the libraries and modules of the application.
+        FreshLib uses this mechanism and the user is free to use it as well.
+    </description>
+    </directive>
+    <directive name="finalize" tool="fasm">
+        <description>macro initialize.
+        The macros "initialize" and "finalize" defines one special type of procedures that, during compilation are registered in a two separate lists - one for "initialize" and one for "finalize" procedures. Procedures defined with "initialize" and "finalize" must have no any arguments.
+        After that, using the macros "InitializeAll" and "FinalizeAll", all these procedures can be call at once. "initialize" procedures are call in the order of their definition and "finalize" procedures in reverse order.
+        These macros provides standard and consistent way for initialization and the finalization of the libraries and modules of the application.
+        FreshLib uses this mechanism and the user is free to use it as well.
+        </description>
+    </directive>
+    <directive name="FinalizeAll" tool="fasm">
+        <description>The macros "initialize" and "finalize" defines one special type of procedures that, during compilation are registered in a two separate lists - one for "initialize" and one for "finalize" procedures. Procedures defined with "initialize" and "finalize" must have no any arguments.
+        After that, using the macros "InitializeAll" and "FinalizeAll", all these procedures can be call at once. "initialize" procedures are call in the order of their definition and "finalize" procedures in reverse order.
+        These macros provides standard and consistent way for initialization and the finalization of the libraries and modules of the application.
+        FreshLib uses this mechanism and the user is free to use it as well.
+    </description>
+    </directive>
+    <directive name="uglobal" tool="fasm">
+        <description>uglobal begins block for undefined data definition. The block ends with endg macro. Between "uglobal" and "endg" macro any count of data definitions can be inserted.
+Note that because uglobal block defines undefined data, it is only the labels and the size of data that have meaning inside this block. Any data, defined with data definition directive will not increase the size of the executable file, but will be allocated when the executable is loaded in the memory.
+The undefined data will be defined later at the place where "IncludeAllGlobals" macro resides. In order to not increase the size of the executable file, the undefined data is always placed at the end of all data definitions.
+"iglobal" macro, again combined with "endg" defines initialized data. The data defined in the block will be created at "IncludeAllGlobals" statement.
+This block increases the size of the executable file, because it contains sensible data, that have to be included in the file.
+Actually, neither uglobal, nor iglobal blocks defines any data immediately. Instead, the data definitions are stored in a list. The real definition occurs later, when IncludeAllGlobals macro is invoked. For this reason, IncludeAllGlobals must be placed in the source after all used global data blocks.
+The programmer should not use explicitly IncludeAllGlobals, unless the memory model "manual" is set in the @BinaryType statement. </description>
+    </directive>
+    <directive name="iglobal" tool="fasm">
+        <description>uglobal begins block for undefined data definition. The block ends with endg macro. Between "uglobal" and "endg" macro any count of data definitions can be inserted.
+Note that because uglobal block defines undefined data, it is only the labels and the size of data that have meaning inside this block. Any data, defined with data definition directive will not increase the size of the executable file, but will be allocated when the executable is loaded in the memory.
+The undefined data will be defined later at the place where "IncludeAllGlobals" macro resides. In order to not increase the size of the executable file, the undefined data is always placed at the end of all data definitions.
+"iglobal" macro, again combined with "endg" defines initialized data. The data defined in the block will be created at "IncludeAllGlobals" statement.
+This block increases the size of the executable file, because it contains sensible data, that have to be included in the file.
+Actually, neither uglobal, nor iglobal blocks defines any data immediately. Instead, the data definitions are stored in a list. The real definition occurs later, when IncludeAllGlobals macro is invoked. For this reason, IncludeAllGlobals must be placed in the source after all used global data blocks.
+The programmer should not use explicitly IncludeAllGlobals, unless the memory model "manual" is set in the @BinaryType statement. </description>
+    </directive>
+    <directive name="endg" tool="fasm">
+        <description>uglobal begins block for undefined data definition. The block ends with endg macro. Between "uglobal" and "endg" macro any count of data definitions can be inserted.
+Note that because uglobal block defines undefined data, it is only the labels and the size of data that have meaning inside this block. Any data, defined with data definition directive will not increase the size of the executable file, but will be allocated when the executable is loaded in the memory.
+The undefined data will be defined later at the place where "IncludeAllGlobals" macro resides. In order to not increase the size of the executable file, the undefined data is always placed at the end of all data definitions.
+"iglobal" macro, again combined with "endg" defines initialized data. The data defined in the block will be created at "IncludeAllGlobals" statement.
+This block increases the size of the executable file, because it contains sensible data, that have to be included in the file.
+Actually, neither uglobal, nor iglobal blocks defines any data immediately. Instead, the data definitions are stored in a list. The real definition occurs later, when IncludeAllGlobals macro is invoked. For this reason, IncludeAllGlobals must be placed in the source after all used global data blocks.
+The programmer should not use explicitly IncludeAllGlobals, unless the memory model "manual" is set in the @BinaryType statement. </description>
+    </directive>
+    <directive name="IncludeAllGlobals" tool="fasm">
+        <description>Buglobal begins block for undefined data definition. The block ends with endg macro. Between "uglobal" and "endg" macro any count of data definitions can be inserted.
+Note that because uglobal block defines undefined data, it is only the labels and the size of data that have meaning inside this block. Any data, defined with data definition directive will not increase the size of the executable file, but will be allocated when the executable is loaded in the memory.
+The undefined data will be defined later at the place where "IncludeAllGlobals" macro resides. In order to not increase the size of the executable file, the undefined data is always placed at the end of all data definitions.
+"iglobal" macro, again combined with "endg" defines initialized data. The data defined in the block will be created at "IncludeAllGlobals" statement.
+This block increases the size of the executable file, because it contains sensible data, that have to be included in the file.
+Actually, neither uglobal, nor iglobal blocks defines any data immediately. Instead, the data definitions are stored in a list. The real definition occurs later, when IncludeAllGlobals macro is invoked. For this reason, IncludeAllGlobals must be placed in the source after all used global data blocks.
+The programmer should not use explicitly IncludeAllGlobals, unless the memory model "manual" is set in the @BinaryType statement. c</description>
+    </directive>
+    <directive name="text" tool="fasm">
+        <description>The macro "text" is actually a structure. It needs to be preceded by some label name.
+This macro accepts string or number arguments. When it is invoked with string arguments, it defines a zero terminated string constant, and also a local constant .length equal to the length of the string without terminating zero. When invoked with number as argument, "text" defines label at the address val and does not defines .length constant.
+The "text" macro, the same way as iglobal and uglobal, simply stores string data for defer definition. This definition, occurs in IncludeAllGlobals invocation. Note that the real definition will be made only if the string is used in the program. Not used strings will not be defined. </description>
+    </directive>
+    <directive name="var" tool="fasm">
+        <description>The macro var defines dword variable with a given value. The use is following:
+        var MyVar = 1234
+The only differens from the usual use of dd directive is that the variable will be defined only if used in the source.
+Note that the variable is created at the place where var is used, so you need to place it inside a iglobal block if you want it to be defined in the global data place. </description>
+    </directive>
+    <directive name="struct" tool="fasm">
+        <description>struct macro is aimed to provide easy creation of data structures. The "struc" directive in FASM is known to not create actual labels, but only the template for the label definitions. So, we need to create an instance of the data structure in order to have addresses and offsets of its fields.
+But very often we don't have static data structure of the given type, but data structure, pointed by some of the registers. In this case in order to use offsets to the fields of the data structure, we need to define at least one virtual instance of the structure at address 0. Then we can use the values of the fields as an offsets in the instructions - for example:
+    mov eax, [esi+RECT.right].
+So, this is exactly what "struct" macro does. Besides it defines the "struc" structure with the given fields, it creates a single virtual instance of this structure, in order to be used later for register addressing. Also, the macro defines local constant of sizeof. global label equal to the byte size of the structure. In all remaining functionality it behaves exactly as the struc directive.
+The syntax of struct macro is the following:
+    struct StructureName
+      .field1 dd ?
+      .field2 RECT
+      .fieldN:
+    ends
+The definition begins with "struct" followed by the structure name. The definition ends with "ends" directive. Between both, any local label definition becomes a member of the structure.
+        </description>
+    </directive>
+    <directive name="rstruct" tool="fasm">
+        <description>The rstruct macro works exactly as struct but places the fields in reverse direction. I.e. the last field will have offset 0 and the first field will have smallest negative offset.
+For example:
+rstruct RevStruct
+  .first dd ?         ; RevStruct.first = -8
+  .second dd ?        ; RevStruct.second = -4
+  label .last dword   ; RevStruct.last = 0
+ends
+This macro is useful for some variable data structures where the data is placed at the positive offsets and the header is located on the negative addresses.
+FreshLib uses such structures in StrLib and some other libraries. </description>
+    </directive>
+    <directive name="GetMem" tool="fasm">
+        <description>proc GetMem, .size
+        Allocates [.size] byte of dynamic memory.
+        Returns:
+        CF=0; EAX = pointer to the allocated memory;
+        CF=1; EAX=0 if the memory can not be allocated.
+        The memory is filled with NULL. 
+        </description>
+    </directive>
+    <directive name="FreeMem" tool="fasm">
+        <description>proc FreeMem, .ptr
+Frees the specified in [.ptr] dynamically allocated memory. Returns nothing. </description>
+    </directive>
+    <directive name="ResizeMem" tool="fasm">
+        <description> proc ResizeMem, .ptr, .newsize
+        Reallocates memory on address [.ptr] to the new size in [.newsize]
+        Returns:
+        CF=0; EAX = pointer to the allocated memory;
+        CF=1; EAX=`.ptr` if the memory can not be reallocated. In this case, the memory block is not changed
+        The increased part of the memory block is not zeroed.
+        </description>
+    </directive>
+    <directive name="StrNew" tool="fasm">
+        <description>Creates new dynamic string and returns its handle.
+        The strings in the StrLib are stored in specific format. The format is defined following way:
+            struc string {
+            .capacity dd ?
+            .len      dd ?
+            label .data byte
+            }
+
+            virtual at -(sizeof.string)
+            string string
+            sizeof.string = $-string
+            end virtual
+
+The structure string have variable length and is dynamically allocated.
+The field string.capacity on offset -8 contains the allocated memory size in bytes.
+The field string.len on offset -4 contains the current length of the string in bytes.
+The string content begins on offset 0. The content of the string always ends with at least one zero byte, so the string format is compatible with ASCIIZ format used in the most OS API.
+All procedures in StrLib will set [string.len] to the proper value and will use it in the string processing.
+If the programmer manipulates the string data directly, he should set [string.len] himself, or call StrFixLen in order to let StrLib to scan the string and to fix the length field. 
+        </description>
+    </directive>
+    <directive name="StrDel" tool="fasm">
+        <description>proc StrDel, .hstring
+Frees the memory occupied by given string. If the .hstring is pointer to memory, StrDel will try to find it in the table of created strings and if found, will free it as well. If the string passed by pointer is not found in the list - StrDel exits without error. Note, that passing pointer can degrade the performance of the procedure.</description>
+    </directive>
+    <directive name="StrPtr" tool="fasm">
+        <description>proc StrPtr, .hstringc
+Returns in EAX the pointer of the string with handle [.hstring] If .hstring is pointer EAX will be equal to [.hstring] If the handle is invalid, StrPtr returns CF=1 and EAX=0.</description>
+    </directive>
+    <directive name="StrLen" tool="fasm">
+        <description>proc StrLen, .hstring
+Returns the length of the string in bytes, excluding the terminating zero. If [.hstring] is handle, the procedure returns directly the stored length of the string. If [.hstring] is pointer, the functions scans the string and computes the length. Thus, passing handle is much faster, especially for long strings. </description>
+    </directive>
+    <directive name="StrDup" tool="fasm">
+        <description>proc StrDup, .hstring
+Creates new string and copy the content of [.hstring] to it. Returns in EAX — handle of the new string. [.hstring] can be memory pointer or string handle. </description>
+    </directive>
+    <directive name="StrFixLen" tool="fasm">
+        <description>proc StrFixLen, .hstring
+StrFixLen scans the string in order to compute its actual length and then writes this length in the field [string.len]. StrFixLen should be call only with handle of the string as argument. It will process pointer as well, but will assume there is a field [string.len] at offset -4. The user should call StrFixLen only if the [string.len] field does not contains the proper value, because of some reason - for example the user made some string processing that changes the length of the string or the string data is returned by some OS function that does not care about string length. </description>
+    </directive>
+    <directive name="StrSetCapacity" tool="fasm">
+        <description>proc StrSetCapacity, .hString, .capacity
+This function ensures that the allocated for the string memory is enough to hold at least [.capacity] bytes. If needed the string memory is reallocated. Returns pointer to the string data in EAX. If the reallocation is impossible, returns CF=1; </description>
+    </directive>
+    <directive name="StrCopy" tool="fasm">
+        <description>proc StrCopy, .dest, .source
+Copies the content of [.source] string to [.dest] string. [.dest] must be a handle. [.source] can be handle or pointer. Returns nothing. </description>
+    </directive>
+    <directive name="StrCompCase" tool="fasm">
+        <description>proc StrCompCase, .str1, .str2
+Compares two strings - case sensitive (StrCompCase) or string not sensitive (StrCompNoCase).
+Returns CF = 1 if the strings are equal.
+Returns CF = 0 if the strings are different.
+The speed of this procedure varies depending on passed strings and its content. The worst case is when the strings are passed as pointers and have equal lengths. The best case is when the strings are passed as handles and have different lengths. </description>
+    </directive>
+    <directive name="StrCompNoCase" tool="fasm">
+        <description>proc StrCompNoCase, .str1, .str2
+Compares two strings - case sensitive (StrCompCase) or string not sensitive (StrCompNoCase).
+Returns CF = 1 if the strings are equal.
+Returns CF = 0 if the strings are different.
+The speed of this procedure varies depending on passed strings and its content. The worst case is when the strings are passed as pointers and have equal lengths. The best case is when the strings are passed as handles and have different lengths. </description>
+    </directive>
+    <directive name="StrCat" tool="fasm">
+        <description>proc StrCat, .dest, .source
+Concatenates the string [.source] to the end of the string [.dest]. </description>
+    </directive>
+    <directive name="StrCharPos" tool="fasm">
+        <description>proc StrCharPos, .hString, .char
+StrCharPos returns a pointer to the first occurence of a given char in specified string.</description>
+    </directive>
+    <directive name="StrPos" tool="fasm">
+        <description>proc StrPos, .hstring, .hpattern
+StrPos returns in EAX a pointer to the first occurence of a [.hpattern] string in [.hstring] or NULL if the pattern was not found. </description>
+    </directive>
+    <directive name="StrCopyPart" tool="fasm">
+        <description>proc StrCopyPart, .dest, .source, .pos, .len
+Extracts [.len] bytes on position [.pos] from the string [.source] and copies them to the string [.dest]. Returns CF=1 if the needed memory can not be allocated. </description>
+    </directive>
+    <directive name="StrExtract" tool="fasm">
+        <description>proc StrExtract, .string, .pos, .len
+Extracts [.len] bytes on position [.pos] from the string [.source] and copies them to the new created string. Returns the created string in EAX or CF=1 if the needed memory can not be allocated.</description>
+    </directive>
+    <directive name="StrSplit" tool="fasm">
+        <description>proc StrSplit, .hString, .pos
+Splits the string [.hstring] into two parts on byte possition [.pos]. The left part remains in [.hstring]; The right part is returned as new created string in EAX. Note that the memory of the [.hstring] will not be reallocated, only the length of the string will be set accordingly. </description>
+    </directive>
+    <directive name="StrInsert" tool="fasm">
+        <description>proc StrInsert, .dest, .source, .pos
+Inserts the [.source] string on possition [.pos] into the [.dest] string. Returns nothing.</description>
+    </directive>
+    <directive name="NumToStr" tool="fasm">
+        <description>proc NumToStr, .num, .flags
+Converts number [.num] in any radix to string. Returns the new created string in EAX.
+[.flags] controls the way number have to be converted. .flags is dword value that contains following values:
+byte0 - number of digits if ntsFixedWidth is specified.
+byte1 - radix for the convertion. Some radixes have predefined constants:
+    ntsBin  = $0200
+    ntsQuad = $0400
+    ntsOct  = $0800
+    ntsDec  = $0a00
+    ntsHex  = $1000
+byte2, byte3 - flags:
+    ntsSigned       = $00000
+    ntsUnsigned     = $10000
+    ntsFixedWidth   = $20000</description>
+    </directive>
+    <directive name="StrToNumEx" tool="fasm">
+        <description>proc StrToNumEx, .hstring
+Converts [.hstring] to number. Returns CF=0 and value in EAX if the conversion was successful, or CF=1 and EAX = 0 if not.
+The procedure supports the FASM numbers format:
+0x1111, $1111 or 1111h will be converted as HEX;
+1111 as decimal;
+1111b as binary;
+1111o as octal.</description>
+    </directive>
+    <directive name="StrCharCat" tool="fasm">
+        <description>proc StrCharCat, .hString, .char
+Appends up to 4 bytes fro [.char] at the end of [.hString]</description>
+    </directive>
+    <directive name="StrCharInsert" tool="fasm">
+        <description>proc StrCharInsert, .hString, .char, .pos
+Inserts up to 4 characters from [.char] into the [.pos] position of the [.hString]</description>
+    </directive>
+    <directive name="StrClipSpacesR" tool="fasm">
+        <description>proc StrClipSpacesR, .hString
+Removes the spaces from the start (StrClipSpacesL) or from the end (StrClipSpacesR) of the string [.hString]. </description>
+    </directive>
+    <directive name="StrClipSpacesL" tool="fasm">
+        <description>proc StrClipSpacesL, .hString
+Removes the spaces from the start (StrClipSpacesL) or from the end (StrClipSpacesR) of the string [.hString]. </description>
+    </directive>
+    <directive name="StrCleanDupSpaces" tool="fasm">
+        <description>proc StrCleanDupSpaces, .hString
+Removes duplicating spaces from the string [.hStrin] and leaves only single spaces. For example the string ("." represents the space char) "123.....456" will be processed to "123.456". </description>
+    </directive>
+    <directive name="StrHash" tool="fasm">
+        <description>proc StrHash, .hString
+Computes the hash value from the string [.hString]. This procedure implements FNV-1b algorithm.
+Returns 32 bit hash value in EAX. </description>
+    </directive>
+    <directive name="DataHash" tool="fasm">
+        <description>proc DataHash, .ptrData, .len
+Computes the hash value from the memory array at address [.ptrData] with byte length [.len]. This procedure also uses FNV-1b algorithm.
+Returns 32 bit hash value in EAX. </description>
+    </directive>
+    <directive name="StrLenUtf8" tool="fasm">
+        <description>proc StrLenUtf8, .hString, .len
+Computes the length in chars of the first [.len] bytes of the UTF-8 encoded string [.hString] The scan of the string ends on one of the two conditions — terminating zero byte is reached or [.len] bytes are processed. So, if [.len] == -1 the scan will always end on the end of the string. </description>
+    </directive>
+    <directive name="StrOffsUtf8" tool="fasm">
+        <description>proc StrOffsUtf8, .hString, .pos
+Returns in EAX the address of the [.pos] character of the UTF-8 encoded string [.hString] If the length of the string is less than [.pos] — returns NULL. </description>
+    </directive>
+    <directive name="DecodeUtf8" tool="fasm">
+        <description>proc DecodeUtf8, .chars
+Decodes 4 bytes in [.chars] to UNICODE dword value.
+Returns: CF=0 — no error; eax — unicode value; edx — byte count of the char. [1..4]
+CF=1 — invalid utf-8 char; if eax = edx = 0; the character can not be decoded; if edx &lt;&gt; 0 — eax = the overlong encoded character. edx = byte count of the char.
+Note: When CF=1 and [.chars] is overlong encoded char, eax contains the proper value and edx contains the proper length. But it is still invalid character, according to the standards. </description>
+    </directive>
+    <directive name="ExpandTabs" tool="fasm">
+        <description>proc ExpandTabs, .hstring, .tabstop
+Converts the tab characters in [.hstring] into space characters, according to [.tabstop] length. Returns in EAX a value, that indicates by how many chars the length of the string increased.</description>
+    </directive>
 </directives>

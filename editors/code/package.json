@@ -40,7 +40,8 @@
                 "id": "asm",
                 "extensions": [
                     ".s",
-                    ".S"
+                    ".S",
+                    ".asm"
                 ]
             }
         ]

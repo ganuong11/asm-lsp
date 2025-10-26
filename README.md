@@ -44,6 +44,14 @@ cargo install --path asm-lsp
 Download and uncompress the appropriate precompiled binaries from the project's
 [releases page](https://github.com/bergercookie/asm-lsp/releases).
 
+### How to add new directives & build
+```
+#edit xml file in docs_store
+cd xtask
+cargo xtask regen
+cd ../asm-lsp
+cargo build --release
+```
 ## Set up as a language server
 
 Add a section like the following in your `settings.json` file:
