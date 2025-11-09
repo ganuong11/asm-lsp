@@ -20,6 +20,21 @@
             "skipFiles": [
                 "<node_internals>/**/*.js"
             ]
+        },
+        {
+            "name": "Debug asm-lsp Program",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${workspaceFolder}/target/debug/asm-lsp",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "Build Server",
+        },
+        {
+            "name": "Attach asm-lsp Program",
+            "type": "lldb",
+            "request": "attach",
+            "program": "${workspaceFolder}/target/debug/asm-lsp",
         }
     ]
 }

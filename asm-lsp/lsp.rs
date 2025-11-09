@@ -1078,7 +1078,7 @@ fn get_label_resp(word: &str, uri: &Uri, doc_store: &mut DocumentStore) -> Optio
             if let Some(ref tree) = tree_entry.tree {
                 static QUERY_LABEL_DATA: LazyLock<tree_sitter::Query> = LazyLock::new(|| {
                     tree_sitter::Query::new(
-                        &tree_sitter_asm::language(),
+                        &tree_sitter_asm::LANGUAGE.into(),
                         "(
                             (label (ident) @label)
                             .
@@ -1353,7 +1353,7 @@ pub fn get_comp_resp(
     if let Some(ref tree) = tree_entry.tree {
         static QUERY_DIRECTIVE: LazyLock<tree_sitter::Query> = LazyLock::new(|| {
             tree_sitter::Query::new(
-                &tree_sitter_asm::language(),
+                &tree_sitter_asm::LANGUAGE.into(),
                 "(meta kind: (meta_ident) @directive)",
             )
             .unwrap()
@@ -1393,7 +1393,7 @@ pub fn get_comp_resp(
         // We'll collect all of labels in the document (that are being parsed as labels, at least)
         // and suggest those along with the register completions
         static QUERY_LABEL: LazyLock<tree_sitter::Query> = LazyLock::new(|| {
-            tree_sitter::Query::new(&tree_sitter_asm::language(), "(label (ident) @label)").unwrap()
+            tree_sitter::Query::new(&tree_sitter_asm::LANGUAGE.into(), "(label (ident) @label)").unwrap()
         });
 
         // need a separate cursor to search the entire document
@@ -1413,7 +1413,7 @@ pub fn get_comp_resp(
 
         static QUERY_INSTR_ANY: LazyLock<tree_sitter::Query> = LazyLock::new(|| {
             tree_sitter::Query::new(
-                &tree_sitter_asm::language(),
+                &tree_sitter_asm::LANGUAGE.into(),
                 "[
                     (instruction kind: (word) @instr_name)
                     (
@@ -1506,6 +1506,122 @@ const fn lsp_pos_of_point(pos: tree_sitter::Point) -> lsp_types::Position {
     }
 }
 
+// /// Explore `node`, push immediate children into `res`.
+// fn explore_node(
+//     curr_doc: &str,
+//     node: tree_sitter::Node,
+//     res: &mut Vec<DocumentSymbol>,
+//     label_kind_id: u16,
+//     ident_kind_id: u16,
+// ) {
+//     if node.kind_id() == label_kind_id {
+//         let mut children = vec![];
+//         let mut cursor = node.walk();
+
+//         // description for this node
+//         let mut descr = String::new();
+
+//         if cursor.goto_first_child() {
+//             loop {
+//                 let sub_node = cursor.node();
+//                 if sub_node.kind_id() == ident_kind_id
+//                     && let Ok(text) = sub_node.utf8_text(curr_doc.as_bytes())
+//                 {
+//                     descr = text.to_string();
+//                 }
+
+//                 explore_node(
+//                     curr_doc,
+//                     sub_node,
+//                     &mut children,
+//                     label_kind_id,
+//                     ident_kind_id,
+//                 );
+//                 if !cursor.goto_next_sibling() {
+//                     break;
+//                 }
+//             }
+//         }
+
+//         let range = lsp_types::Range::new(
+//             lsp_pos_of_point(node.start_position()),
+//             lsp_pos_of_point(node.end_position()),
+//         );
+
+//         // Use a constant for the default value to avoid repeated allocations
+//         // and handle whitespace-only descriptions more robustly
+//         if descr.trim().is_empty() {
+//             descr = String::from("unknown");
+//         }
+
+//         #[allow(deprecated)]
+//         let doc = DocumentSymbol {
+//             name: descr,
+//             detail: None,
+//             kind: SymbolKind::FUNCTION,
+//             tags: None,
+//             deprecated: Some(false),
+//             range,
+//             selection_range: range,
+//             children: if children.is_empty() {
+//                 None
+//             } else {
+//                 Some(children)
+//             },
+//         };
+//         res.push(doc);
+//     } else {
+//         let mut cursor = node.walk();
+
+//         if cursor.goto_first_child() {
+//             loop {
+//                 explore_node(curr_doc, cursor.node(), res, label_kind_id, ident_kind_id);
+//                 if !cursor.goto_next_sibling() {
+//                     break;
+//                 }
+//             }
+//         }
+//     }
+// }
+
+// /// Get a tree of symbols describing the document's structure.
+// pub fn get_document_symbols(
+//     curr_doc: &str,
+//     tree_entry: &mut TreeEntry,
+//     _params: &DocumentSymbolParams,
+// ) -> Option<Vec<DocumentSymbol>> {
+//     static LABEL_KIND_ID: LazyLock<u16> =
+//         LazyLock::new(|| {
+//             let lang: tree_sitter::Language = tree_sitter_asm::LANGUAGE.into();
+//             lang.id_for_node_kind("label", true)
+//         });
+//     static IDENT_KIND_ID: LazyLock<u16> =
+//         LazyLock::new(|| {
+//             let lang: tree_sitter::Language = tree_sitter_asm::LANGUAGE.into();
+//             lang.id_for_node_kind("ident", true)
+//         });
+//     tree_entry.tree = tree_entry.parser.parse(curr_doc, tree_entry.tree.as_ref());
+
+//     tree_entry.tree.as_ref().map(|tree| {
+//         let mut res: Vec<DocumentSymbol> = vec![];
+//         let mut cursor = tree.walk();
+//         loop {
+//             explore_node(
+//                 curr_doc,
+//                 cursor.node(),
+//                 &mut res,
+//                 *LABEL_KIND_ID,
+//                 *IDENT_KIND_ID,
+//             );
+//             if !cursor.goto_next_sibling() {
+//                 break;
+//             }
+//         }
+//         res
+//     })
+// }
+
+
 /// Explore `node`, push immediate children into `res`.
 fn explore_node(
     curr_doc: &str,
@@ -1514,7 +1630,7 @@ fn explore_node(
     label_kind_id: u16,
     ident_kind_id: u16,
 ) {
-    if node.kind_id() == label_kind_id {
+    if node.kind_id() != 0 {
         let mut children = vec![];
         let mut cursor = node.walk();
 
@@ -1524,11 +1640,9 @@ fn explore_node(
         if cursor.goto_first_child() {
             loop {
                 let sub_node = cursor.node();
-                if sub_node.kind_id() == ident_kind_id
-                    && let Ok(text) = sub_node.utf8_text(curr_doc.as_bytes())
-                {
-                    descr = text.to_string();
-                }
+                //if let Ok(text) = sub_node.utf8_text(curr_doc.as_bytes())
+                descr = sub_node.grammar_name().to_string();
+                
 
                 explore_node(
                     curr_doc,
@@ -1548,6 +1662,8 @@ fn explore_node(
             lsp_pos_of_point(node.end_position()),
         );
 
+        let addit = !descr.is_empty();
+
         #[allow(deprecated)]
         let doc = DocumentSymbol {
             name: descr,
@@ -1563,7 +1679,11 @@ fn explore_node(
                 Some(children)
             },
         };
-        res.push(doc);
+        
+        if addit {
+            //descr = String::from("unknown");
+            res.push(doc);
+        }
     } else {
         let mut cursor = node.walk();
 
@@ -1585,9 +1705,15 @@ pub fn get_document_symbols(
     _params: &DocumentSymbolParams,
 ) -> Option<Vec<DocumentSymbol>> {
     static LABEL_KIND_ID: LazyLock<u16> =
-        LazyLock::new(|| tree_sitter_asm::language().id_for_node_kind("label", true));
+        LazyLock::new(|| {
+            let lang: tree_sitter::Language = tree_sitter_asm::LANGUAGE.into();
+            lang.id_for_node_kind("label", true)
+        });
     static IDENT_KIND_ID: LazyLock<u16> =
-        LazyLock::new(|| tree_sitter_asm::language().id_for_node_kind("ident", true));
+        LazyLock::new(|| {
+            let lang: tree_sitter::Language = tree_sitter_asm::LANGUAGE.into();
+            lang.id_for_node_kind("ident", true)
+        });
     tree_entry.tree = tree_entry.parser.parse(curr_doc, tree_entry.tree.as_ref());
 
     tree_entry.tree.as_ref().map(|tree| {
@@ -1625,7 +1751,7 @@ pub fn get_sig_help_resp(
         // Instruction with any (including zero) argument(s)
         static QUERY_INSTR_ANY_ARGS: LazyLock<tree_sitter::Query> = LazyLock::new(|| {
             tree_sitter::Query::new(
-                &tree_sitter_asm::language(),
+                &tree_sitter_asm::LANGUAGE.into(),
                 "(instruction kind: (word) @instr_name)",
             )
             .unwrap()
@@ -1720,7 +1846,7 @@ pub fn get_goto_def_resp(
 
     if let Some(ref tree) = tree_entry.tree {
         static QUERY_LABEL: LazyLock<tree_sitter::Query> = LazyLock::new(|| {
-            tree_sitter::Query::new(&tree_sitter_asm::language(), "(label) @label").unwrap()
+            tree_sitter::Query::new(&tree_sitter_asm::LANGUAGE.into(), "(label) @label").unwrap()
         });
 
         let is_not_ident_char = |c: char| !(c.is_alphanumeric() || c == '_');
@@ -1775,14 +1901,14 @@ pub fn get_ref_resp(
     if let Some(ref tree) = tree_entry.tree {
         static QUERY_LABEL: LazyLock<tree_sitter::Query> = LazyLock::new(|| {
             tree_sitter::Query::new(
-                &tree_sitter_asm::language(),
+                &tree_sitter_asm::LANGUAGE.into(),
                 "(label (ident (reg (word)))) @label",
             )
             .unwrap()
         });
 
         static QUERY_WORD: LazyLock<tree_sitter::Query> = LazyLock::new(|| {
-            tree_sitter::Query::new(&tree_sitter_asm::language(), "(ident) @ident").unwrap()
+            tree_sitter::Query::new(&tree_sitter_asm::LANGUAGE.into(), "(ident) @ident").unwrap()
         });
 
         let is_not_ident_char = |c: char| !(c.is_alphanumeric() || c == '_');

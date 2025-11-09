@@ -1,0 +1,101 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+
+        // {
+        //     "name": "Debug unit tests in library 'asm_lsp'",
+        //     "type": "lldb",
+        //     "request": "launch",
+        //     "cargo": {
+        //         "args": [
+        //             "test",
+        //             "--package=asm-lsp"
+        //         ]
+        //     }
+        // },
+        // {
+        //     "name": "Debug executable 'asm-lsp'",
+        //     "type": "lldb",
+        //     "request": "launch",
+        //     "cargo": {
+        //         "args": [
+        //             "run",
+        //             "--bin=asm-lsp",
+        //             "--package=asm-lsp"
+        //         ]
+        //     },
+        //     "args": []
+        // },
+        {
+            "name": "Debug executable 'asm-lsp'",
+            "type": "lldb",
+            "request": "attach",
+            "pid":"${command:pickProcess}"
+        },
+        // {
+        //     "name": "Debug unit tests in executable 'asm-lsp'",
+        //     "type": "lldb",
+        //     "request": "launch",
+        //     "cargo": {
+        //         "args": [
+        //             "test",
+        //             "--bin=asm-lsp",
+        //             "--package=asm-lsp"
+        //         ]
+        //     }
+        // },
+        // {
+        //     "name": "Debug executable 'asm_docs_parsing'",
+        //     "type": "lldb",
+        //     "request": "launch",
+        //     "cargo": {
+        //         "args": [
+        //             "run",
+        //             "--bin=asm_docs_parsing",
+        //             "--package=asm_docs_parsing"
+        //         ]
+        //     },
+        //     "args": []
+        // },
+        // {
+        //     "name": "Debug unit tests in executable 'asm_docs_parsing'",
+        //     "type": "lldb",
+        //     "request": "launch",
+        //     "cargo": {
+        //         "args": [
+        //             "test",
+        //             "--bin=asm_docs_parsing",
+        //             "--package=asm_docs_parsing"
+        //         ]
+        //     }
+        // },
+        // {
+        //     "name": "Debug executable 'xtask'",
+        //     "type": "lldb",
+        //     "request": "launch",
+        //     "cargo": {
+        //         "args": [
+        //             "run",
+        //             "--bin=xtask",
+        //             "--package=xtask"
+        //         ]
+        //     },
+        //     "args": []
+        // },
+        // {
+        //     "name": "Debug unit tests in executable 'xtask'",
+        //     "type": "lldb",
+        //     "request": "launch",
+        //     "cargo": {
+        //         "args": [
+        //             "test",
+        //             "--bin=xtask",
+        //             "--package=xtask"
+        //         ]
+        //     }
+        // }
+    ]
+}

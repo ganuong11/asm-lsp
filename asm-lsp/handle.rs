@@ -602,7 +602,8 @@ pub fn handle_did_open_text_document_notification(
         .listen(DidOpenTextDocument::METHOD, &raw_params);
 
     let mut parser = Parser::new();
-    parser.set_language(&tree_sitter_asm::language()).unwrap();
+    let language = tree_sitter_asm::LANGUAGE;
+    parser.set_language(&language.into()).expect("Error loading asm parser");
     doc_store.tree_store.insert(
         params.text_document.uri.clone(),
         TreeEntry {
